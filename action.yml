@@ -147,7 +147,7 @@ runs:
         sudo install -m0644 manjaro-trusted /usr/share/pacman/keyrings/
         sudo install -m0644 manjaro-trusted /usr/share/pacman/keyrings/
         popd
-        
+
         sudo git clone --depth 1 https://gitlab.archlinux.org/archlinux/archlinux-keyring.git
         pushd archlinux-keyring
         sudo install -m0644 archlinux.gpg /usr/share/pacman/keyrings/
@@ -171,13 +171,13 @@ runs:
         sudo make -C arch-install-scripts-${VERSION}
         sudo make -C arch-install-scripts-${VERSION} check
         sudo make -C arch-install-scripts-${VERSION} PREFIX=/usr install
-        
+
         sudo wget https://gitlab.manjaro.org/applications/pacman-mirrors/-/raw/v4.19x-stable/conf/pacman-mirrors.conf -O /etc/pacman-mirrors.conf
     - id: install-calamares-tools
       shell: bash
       run: |
         sudo git clone --depth 1 https://gitlab.manjaro.org/applications/calamares-tools.git
-        
+
         cd calamares-tools
         sudo install -d /usr/share/calamares/
         sudo cp -rv schemas/ /usr/share/calamares/
@@ -226,18 +226,20 @@ runs:
         sudo sed -i -e "s|dist_release=\$(get_release)|dist_release=${VERSION:-$DISTRIB_RELEASE}|g" /usr/lib/manjaro-tools/util.sh
         sudo sed -i -e "s|dist_codename=\$(get_codename)|dist_codename=\"${CODE_NAME:-$DISTRIB_CODENAME}\"|g" /usr/lib/manjaro-tools/util.sh
         sudo sed -i -e "s|build_mirror='https://manjaro.moson.eu'|build_mirror='https://repo.ialab.dsu.edu/manjaro'|g" /usr/lib/manjaro-tools/util.sh
-        
-        sudo buildiso ${SCOPE:+-f} -p $EDITION -b $BRANCH -k $KERNEL
-        
+
+        sudo bash -x /usr/bin/buildiso ${SCOPE:+-f} -p $EDITION -b $BRANCH -k $KERNEL
+
         sudo rm -Rf /var/lib/manjaro-tools/buildiso/*
-        
+
         OUTPUT_ISO_PATH=$(find /var/cache/manjaro-tools/iso -type f -name "*.iso" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
         TARGET_ISO_PATH=$(basename $OUTPUT_ISO_PATH)
-        mv $OUTPUT_ISO_PATH ./$TARGET_ISO_PATH
+        ls -lah $OUTPUT_ISO_PATH
+        mv $OUTPUT_ISO_PATH ./$TARGET_ISO_PATH || true
         echo "::set-output name=file-path::$TARGET_ISO_PATH"
 
         FILE_PKG=$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
-        mv $FILE_PKG ./${TARGET_ISO_PATH}.pkgs
+        ls -lah $FILE_PKG
+        mv $FILE_PKG ./${TARGET_ISO_PATH}.pkgs || true
     - id: hash
       shell: bash
       run: |
@@ -249,7 +251,7 @@ runs:
       shell: bash
       run: |
         # if is not yet supported in composite https://github.com/actions/runner/blob/main/docs/adrs/0549-composite-run-steps.md#if-condition
-        if [ -z "${{ inputs.gpg-secret-key-base64 }}" ]; then 
+        if [ -z "${{ inputs.gpg-secret-key-base64 }}" ]; then
           echo "## no gpg secret given"
           exit 0
         fi
@@ -270,16 +272,16 @@ runs:
       shell: bash -O extglob {0}
       run: |
         # if is not yet supported in composite https://github.com/actions/runner/blob/main/docs/adrs/0549-composite-run-steps.md#if-condition
-        if [ -z "${{ inputs.cdn77-host }}" ] || [ -z "${{ inputs.cdn77-user }}" ] || [ -z "${{ inputs.cdn77-pwd }}" ]; then 
+        if [ -z "${{ inputs.cdn77-host }}" ] || [ -z "${{ inputs.cdn77-user }}" ] || [ -z "${{ inputs.cdn77-pwd }}" ]; then
           echo "## not (all) credentials given for cdn77 upload"
           exit 0
         fi
         echo "## cdn77 upload"
-        
+
         mktorrent -v -a udp://tracker.opentrackr.org:1337 -l 21 \
           -w "https://download.manjaro.org/${{ inputs.edition }}/${{ inputs.version }}/${{ steps.image-build.outputs.file-path }}" \
           -o ${{ steps.image-build.outputs.file-path }}.torrent ${{ steps.image-build.outputs.file-path }}
-        
+
         ssh-keyscan -t rsa ${{ inputs.cdn77-host }} >> /home/runner/.ssh/known_hosts
 
         ## create target dir
@@ -296,12 +298,12 @@ runs:
         SSH_AUTH_SOCK: /tmp/ssh_agent.sock
       run: |
         # if is not yet supported in composite https://github.com/actions/runner/blob/main/docs/adrs/0549-composite-run-steps.md#if-condition
-        if [ -z "${{ inputs.sf-project }}" ] || [ -z "${{ inputs.sf-user }}" ] || [ -z "${{ inputs.sf-key }}" ]; then 
+        if [ -z "${{ inputs.sf-project }}" ] || [ -z "${{ inputs.sf-user }}" ] || [ -z "${{ inputs.sf-key }}" ]; then
           echo "## not (all) credentials given for sourceforge upload"
           exit 0
         fi
         echo "## sourceforge upload"
-        
+
         ssh-keyscan -t rsa frs.sourceforge.net >> /home/runner/.ssh/known_hosts
         echo "${{ inputs.sf-key }}" >> /home/runner/.ssh/github_actions
         ssh-add /home/runner/.ssh/github_actions
@@ -319,7 +321,7 @@ runs:
         SSH_AUTH_SOCK: /tmp/ssh_agent.sock
       run: |
         # if is not yet supported in composite https://github.com/actions/runner/blob/main/docs/adrs/0549-composite-run-steps.md#if-condition
-        if [ -z "${{ inputs.osdn-project }}" ] || [ -z "${{ inputs.osdn-user }}" ] || [ -z "${{ inputs.osdn-key }}" ]; then 
+        if [ -z "${{ inputs.osdn-project }}" ] || [ -z "${{ inputs.osdn-user }}" ] || [ -z "${{ inputs.osdn-key }}" ]; then
           echo "## not (all) credentials given for osdn upload"
           exit 0
         fi
@@ -341,7 +343,7 @@ runs:
       shell: bash -O extglob {0}
       run: |
         # if is not yet supported in composite https://github.com/actions/runner/blob/main/docs/adrs/0549-composite-run-steps.md#if-condition
-        if [ -z "${{ inputs.release-tag }}" ]; then 
+        if [ -z "${{ inputs.release-tag }}" ]; then
           echo "## no release tag given"
           exit 0
         fi
@@ -364,7 +366,7 @@ runs:
         else
           # iso is too big - creating a split-zip
           zip -j -s 1950m ${{ steps.image-build.outputs.file-path }}.zip ${{ steps.image-build.outputs.file-path }}
-          
+
           REMOTE_FILES=$(find . -maxdepth 1 -name "*.z*" -exec basename {} \; | xargs -I{} echo "-w \"${GITHUB_LINK}/{}\"")
           mktorrent -v -a udp://tracker.opentrackr.org:1337 -l 21 \
             ${REMOTE_FILES} \
