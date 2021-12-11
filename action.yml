@@ -233,11 +233,13 @@ runs:
 
         OUTPUT_ISO_PATH=$(find /var/cache/manjaro-tools/iso -type f -name "*.iso" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
         TARGET_ISO_PATH=$(basename $OUTPUT_ISO_PATH)
+        echo OUTPUT_ISO_PATH
         ls -lah $OUTPUT_ISO_PATH
         mv $OUTPUT_ISO_PATH ./$TARGET_ISO_PATH || true
         echo "::set-output name=file-path::$TARGET_ISO_PATH"
 
         FILE_PKG=$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
+        echo $FILE_PKG
         ls -lah $FILE_PKG
         mv $FILE_PKG ./${TARGET_ISO_PATH}.pkgs || true
     - id: hash
